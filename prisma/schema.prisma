@@ -1,0 +1,121 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id   String @id @default(uuid())
+  name String @db.VarChar(255)
+  icon String @default("")
+  url  String @unique @default("")
+
+  Team        Team[]
+  Competition Competition[]
+
+  @@map("categories")
+}
+
+model Team {
+  id            String @id @default(uuid())
+  name          String @db.VarChar(255)
+  icon          String @default("")
+  id_category   String
+  competitionId String
+
+  category    Category     @relation(fields: [id_category], references: [id])
+  player      Player[]
+  Competition Competition? @relation(fields: [competitionId], references: [id])
+  lolStats    lolStats[]
+
+  @@unique([name, competitionId])
+  @@map("teams")
+}
+
+model Player {
+  id      String @id @default(uuid())
+  name    String @unique
+  id_team String
+
+  team        Team          @relation(fields: [id_team], references: [id])
+  basketStats basketStats[]
+
+  @@map("players")
+}
+
+model basketStats {
+  id               String @id @default(uuid())
+  score            String @default("")
+  min              Int    @default(0)
+  fgm              Int    @default(0)
+  fga              Int    @default(0)
+  fg               Float  @default(0)
+  three_pointers   Int    @default(0)
+  three_attempted  Int    @default(0)
+  three_porcentage Float  @default(0)
+  ftm              Int    @default(0)
+  fta              Int    @default(0)
+  ft_porcentage    Float  @default(0)
+  ts_porcentage    Float  @default(0)
+  oreb             Int    @default(0)
+  dreb             Int    @default(0)
+  reb              Int    @default(0)
+  ast              Int    @default(0)
+  stl              Int    @default(0)
+  blk              Int    @default(0)
+  tov              Int    @default(0)
+  pf               Int    @default(0)
+  pts              Int    @default(0)
+  plus_minus       Int    @default(0)
+
+  id_player String
+  Player    Player? @relation(fields: [id_player], references: [id])
+
+  @@map("basket_stats")
+}
+
+model lolStats {
+  id         String  @id @default(uuid())
+  version    String
+  win        Boolean
+  kills      Int
+  dragons    Int
+  baron      Int
+  towers     Int
+  gold       Float
+  voids      Int
+  time       String
+  firstBlood Boolean
+  firstBrick Boolean
+  blueSide   Boolean
+  game       String
+  date       String
+  teamId     String
+
+  Team Team @relation(fields: [teamId], references: [id])
+
+  @@map("lol_stats")
+}
+
+model Competition {
+  id          String @id @default(uuid())
+  name        String
+  region      String
+  season      String
+  id_category String
+  id_teams    Team[]
+
+  Category Category @relation(fields: [id_category], references: [id])
+
+  @@unique([name, season])
+  @@map("competition")
+}
