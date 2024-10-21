@@ -2,12 +2,22 @@ import { db } from '../../src/config/db.server'
 import { Category } from '../../src/api/Entities/Category'
 
 async function seed() {
-    const lolCategory = new Category({ name: 'League Of Legends', url: '/lol' })
-    const basketCategory = new Category({ name: 'Basquete', url: '/basket' })
+    const haveCategoryInDB = (categoryUrl: string) =>
+        !!db.category.findFirst({
+            where: {
+                url: categoryUrl
+            }
+        })
 
-    await db.category.createMany({
-        data: [lolCategory.toObject(), basketCategory.toObject()]
-    })
+    if (!haveCategoryInDB('/lol')) {
+        const lolCategory = new Category({ name: 'League Of Legends', url: '/lol' })
+        const basketCategory = new Category({ name: 'Basquete', url: '/basket' })
+
+        await db.category.createMany({
+            data: [lolCategory.toObject(), basketCategory.toObject()]
+        })
+    }
+
 }
 seed()
     .then(async () => {
