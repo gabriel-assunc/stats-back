@@ -32,10 +32,12 @@ model Team {
   id_category   String
   competitionId String
 
+  player          Player[]
+  lolStats        lolStats[] @relation(name: "teamId")
+  lolStatsAgainst lolStats[] @relation(name: "playedAgainst")
+
   category    Category     @relation(fields: [id_category], references: [id])
-  player      Player[]
   Competition Competition? @relation(fields: [competitionId], references: [id])
-  lolStats    lolStats[]
 
   @@unique([name, competitionId])
   @@map("teams")
@@ -84,24 +86,26 @@ model basketStats {
 }
 
 model lolStats {
-  id         String  @id @default(uuid())
-  version    String
-  win        Boolean
-  kills      Int
-  dragons    Int
-  baron      Int
-  towers     Int
-  gold       Float
-  voids      Int
-  time       String
-  firstBlood Boolean
-  firstBrick Boolean
-  blueSide   Boolean
-  game       String
-  date       String
-  teamId     String
+  id            String  @id @default(uuid())
+  version       String
+  win           Boolean
+  kills         Int
+  dragons       Int
+  baron         Int
+  towers        Int
+  gold          Float
+  voids         Int
+  time          String
+  firstBlood    Boolean
+  firstBrick    Boolean
+  blueSide      Boolean
+  game          String
+  date          String
+  playedAgainst String
+  teamId        String
 
-  Team Team @relation(fields: [teamId], references: [id])
+  Team          Team @relation(name: "teamId", fields: [teamId], references: [id])
+  PlayedAgainst Team @relation(name: "playedAgainst", fields: [playedAgainst], references: [id])
 
   @@map("lol_stats")
 }
