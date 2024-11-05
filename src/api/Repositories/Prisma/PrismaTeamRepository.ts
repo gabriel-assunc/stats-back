@@ -13,7 +13,8 @@ export class PrismaTeamRepository implements TeamRepository {
                 id: true,
                 Competition: {
                     select: {
-                        name: true
+                        name: true,
+                        id: true
                     }
                 }
             }

@@ -3,7 +3,7 @@ export type BasketTeamType = {
     name: string,
     icon?: string,
     id: string,
-    Competition?: { name: string; }
+    Competition?: { name: string; id?: string }
 }
 
 export interface TeamRepository {

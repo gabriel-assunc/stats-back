@@ -1,6 +1,15 @@
+import { lolStat } from "../../Entities/lolStats";
 import { ScraperAction } from "../../Entities/Scraper/Team/ScrapAction";
 import { LolStatsRepository } from "../../Repositories/LolStatsRepository";
 import { TeamRepository } from "../../Repositories/TeamRepository";
+
+interface updateTeamStatsProps {
+    teamStat: {
+        name: string,
+        stats: lolStat[]
+    },
+    competitionId: string,
+}
 
 export class UpdateTeamStatsLolService {
     private teamRepository: TeamRepository;
@@ -13,11 +22,19 @@ export class UpdateTeamStatsLolService {
         this.lolScraper = lolScraper;
     }
 
+    async updateTeamStats({ competitionId, teamStat: { name, stats } }: updateTeamStatsProps) {
+        if (stats.length === 0) return;
+        await this.statsRepository.deleteStats(stats)
+        await this.statsRepository.addStat(name, competitionId, stats)
+    }
+
     async execute(teamId: string) {
         const { name, Competition } = await this.teamRepository.getTeam(teamId)
-        const { stats } = (await this.lolScraper.updateTeamStats(name, Competition.name))[0]
-        if (stats.length > 0) await this.statsRepository.deleteStats(teamId)
-        await this.statsRepository.addStat(teamId, stats)
-        return stats.length > 0
+        const { name: competitionName, id: competitionId = '' } = Competition
+
+        const teamStats = await this.lolScraper.updateTeamStats(name, competitionName)
+        teamStats.forEach(async (teamStat) => await this.updateTeamStats({ competitionId, teamStat }))
+
+        return teamStats.length > 0
     }
 }

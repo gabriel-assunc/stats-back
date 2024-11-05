@@ -11,6 +11,7 @@ import {
     MATCH_GAME_TAB_SELECTOR,
     MATCH_RESULT_SELECTOR,
     MATCH_STATS_SELECTOR,
+    MATCH_TEAM_NAME_SELECTOR,
     MATCH_TIME_SELECTOR,
     MATCH_VERSION_SELECTOR,
     MATCH_VOIDS_SELECTOR,
@@ -36,7 +37,8 @@ type ScrapedLolStats = {
     baron: string;
     gold: string;
     date: string;
-    game: string
+    game: string;
+    playedAgainst: string;
 }
 
 export class LolScrap implements ScraperAction {
@@ -91,7 +93,7 @@ export class LolScrap implements ScraperAction {
     }
 
     getStatsFromScraped(scrapedLolStats: ScrapedLolStats) {
-        const { teamSide, time, version, voids, win, kills, towers, dragons, firstBrick, firstBlood, baron, gold, date, game } = scrapedLolStats
+        const { teamSide, time, version, voids, win, kills, towers, dragons, firstBrick, firstBlood, baron, gold, date, game, playedAgainst } = scrapedLolStats
         return new lolStat({
             time,
             version,
@@ -105,6 +107,7 @@ export class LolScrap implements ScraperAction {
             blueSide: teamSide === BLUE_SIDE,
             gold: new Number(gold.replace('k', '')).valueOf(),
             date: date.split(' ')[0],
+            playedAgainst,
             game
         })
     }
@@ -127,29 +130,38 @@ export class LolScrap implements ScraperAction {
         })
         const voids = await page.$$eval(MATCH_VOIDS_SELECTOR(teamSide + 1), (element: HTMLElement[]) => element[0]?.innerText || '0')
         const date = await page.$$eval(MATCH_DATE_SELECTOR, element => element[0].innerText)
-
-        return new lolStat(this.getStatsFromScraped({
+        const playedAgainst = await page.$$eval(MATCH_TEAM_NAME_SELECTOR(teamSide === BLUE_SIDE ? RED_SIDE : BLUE_SIDE), (element: HTMLElement[]) => element[0]?.innerText.split(' -')[0] || ' ')
+        const teamStats = new lolStat(this.getStatsFromScraped({
             teamSide,
             time,
             version,
             voids,
             date,
             game,
+            playedAgainst,
             ...gameStats
         }))
+
+        return teamStats
     }
 
     async getTeamStat(teamName: string, page: Page, matchUrl: string, game = "GAME 1") {
         const statPage = await gotoNewPage(page, matchUrl)
         const teamSide = await this.getTeamSide(statPage, teamName)
-        const stats = await this.getStats(statPage, teamSide, game)
+        const blueTeam = await this.getStats(statPage, BLUE_SIDE, game)
+        const redTeam = await this.getStats(statPage, RED_SIDE, game)
+
+        const stats = teamSide === 1 ? blueTeam : redTeam
+        const otherTeam = teamSide === 1 ? redTeam : blueTeam
+        const playedAgains = { name: stats.playedAgainst, stats: [otherTeam] }
         await statPage.close()
-        return stats
+        return { mainTeam: stats, playedAgainst: playedAgains }
     }
 
     async getTeamStatsFromSeries(teamName: string, page: Page, matchUrl: string) {
         const statPage = await gotoNewPage(page, matchUrl)
-        const stats = []
+        const mainTeamStats = []
+        const playedAgainstStats = []
         const gameLink = (await statPage.$$eval(MATCH_GAME_TAB_SELECTOR, tab => {
             return Array.from(tab, element => {
                 if (element.innerText.toLowerCase().includes('game')) return {
@@ -160,22 +172,27 @@ export class LolScrap implements ScraperAction {
         })).filter(links => !!links)
 
         for (let i in gameLink) {
-            stats.push(await this.getTeamStat(teamName, page, gameLink[i].url, gameLink[i].game))
+            const { mainTeam, playedAgainst } = await this.getTeamStat(teamName, page, gameLink[i].url, gameLink[i].game)
+            mainTeamStats.push(mainTeam)
+            playedAgainstStats.push(playedAgainst)
         }
         await statPage.close()
-        return stats
+        return { mainTeamStats, playedAgainstStats }
     }
 
     async scrapStats(page: Page, teamName: string, resultsHref: {
         score: string;
         gameHref: string;
     }[]) {
-        const stats = []
+        const mainTeam = []
+        const playedAgainst = []
         for (let i in resultsHref) {
             const matchResultPage = GOL_BASE + resultsHref[i].gameHref.replace('..', '')
-            stats.push(...await this.getTeamStatsFromSeries(teamName, page, matchResultPage))
+            const { mainTeamStats, playedAgainstStats } = await this.getTeamStatsFromSeries(teamName, page, matchResultPage)
+            mainTeam.push(...mainTeamStats)
+            playedAgainst.push(...playedAgainstStats)
         }
-        return stats
+        return { mainTeam, playedAgainst }
     }
 
     async updateTeamStats(teamName: string, competitionName: string): Promise<playerStats<lolStat>[] | []> {
@@ -187,11 +204,13 @@ export class LolScrap implements ScraperAction {
 
         const matchResult = (await this.getTeamMatchResult(page)).filter(({ score }) => score.includes('-'))
 
-        stats = await this.scrapStats(page, teamName, matchResult)
-
+        const { mainTeam, playedAgainst } = await this.scrapStats(page, teamName, matchResult)
+        stats = [{ name: teamName, stats: mainTeam }]
+        stats.push(...playedAgainst)
+        
         await page.browser().close()
 
-        return [{ name: teamName, stats: stats }]
+        return stats
     }
     async updatePlayerStats(player: PlayerExtracted): Promise<playerStats<lolStat>> {
         throw new Error("Method not implemented.");
