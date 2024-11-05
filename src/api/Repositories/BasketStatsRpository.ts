@@ -1,4 +1,4 @@
-import Stat from "../Entities/Stat";
+import { Stat } from "../Entities/Stat";
 
 export interface StatsRepository {
     addStat(teamId: string, playerId: string, data: Stat): Promise<void>

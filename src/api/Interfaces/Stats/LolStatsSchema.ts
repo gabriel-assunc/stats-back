@@ -16,7 +16,8 @@ const lolStatSchema = z.object({
     firstBrick: z.boolean(),
     blueSide: z.boolean(),
     game: z.string(),
-    date: z.string()
+    date: z.string(),
+    playedAgainst: z.string().uuid(),
 })
 
 export type LolStatsType = z.infer<typeof lolStatSchema>

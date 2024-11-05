@@ -71,6 +71,10 @@ export class lolStat {
         return this.prop.date
     }
 
+    get playedAgainst() {
+        return this.prop.playedAgainst
+    }
+
     toObject() {
         return {
             id: this.id,
@@ -88,6 +92,7 @@ export class lolStat {
             firstBrick: this.firstBrick,
             blueSide: this.blueSide,
             game: this.game,
+            playedAgainst: this.playedAgainst,
             date: this.date
         }
     }

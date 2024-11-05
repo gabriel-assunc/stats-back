@@ -107,6 +107,7 @@ model lolStats {
   Team          Team @relation(name: "teamId", fields: [teamId], references: [id])
   PlayedAgainst Team @relation(name: "playedAgainst", fields: [playedAgainst], references: [id])
 
+  @@unique([date, game, playedAgainst])
   @@map("lol_stats")
 }
 
