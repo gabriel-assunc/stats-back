@@ -4,4 +4,5 @@ export interface LolStatsRepository {
     addStat(teamName: string, competitionId: string, stats: lolStat[]): Promise<void>
     getStats(teamId: string): Promise<lolStat[] | []>
     deleteStats(lolStats: lolStat[]): Promise<void>
+    getOpponentStat(date: string, game: string, teamId: string): Promise<lolStat>
 }

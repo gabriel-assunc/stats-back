@@ -98,15 +98,25 @@ export class PrismaLolStatsrepository implements LolStatsRepository {
         }) as lolStat[] | []
     }
 
+    async getOpponentStat(date: string, game: string, teamId: string): Promise<lolStat> {
+        return await db.lolStats.findFirst({
+            where: {
+                date,
+                game,
+                teamId
+            }
+        }) as lolStat | null
+    }
+
     async deleteStats(lolStats: lolStat[]): Promise<void> {
         for (let i = 0; i < lolStats.length; i++) {
             const { date, game, playedAgainst } = lolStats[i]
-            
+
             await db.lolStats.deleteMany({
                 where: {
                     date,
                     game,
-                    PlayedAgainst:{
+                    PlayedAgainst: {
                         name: playedAgainst
                     }
                 }
